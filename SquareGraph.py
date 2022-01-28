@@ -150,7 +150,7 @@ class SquareGraph:
                                                )
         #populate make with creatures
         for c in self.CharacterList:
-            self.SquareGraph[c.x][c.y].c= c.icon
+            self.SquareGraph[c.x][c.y].c = c.icon
 
     def ShowMap(self,SaveFig=False,SaveName=None,PlotGraph=True,dpi=200):
         """visualize map snapshot in time"""
@@ -181,7 +181,6 @@ class SquareGraph:
                 #BNN
                 if b == (0,1):
                     plt.plot([s.x-0.25,s.x+0.25],[s.y+0.5,s.y+0.5],"k")
-                    
                 #BNE
                 elif b ==(1,1):
                     plt.plot([s.x+0.25,s.x+0.5,s.x+0.5],[s.y+0.5,s.y+0.5,s.y+0.25],"k")
@@ -211,8 +210,6 @@ class SquareGraph:
                                      y2=[s.y+0.5],
                                      color=s.l)
 
-            
-            
         #draw network of map and nodes
         if PlotGraph == True:
             nx.draw(self.G, 
@@ -225,16 +222,16 @@ class SquareGraph:
                 node_shape='s',
                 font_color="blue",
                 edge_color="red")
-            
-        #draw characters, in latest position 
-        for c in self.CharacterList:
-            c.Plot()
         
         #tighten, remove all margin
         plt.subplots_adjust(left=0,right=1.0,top=1.0,bottom=0.0)
         
         #no axis
         plt.axis('off')
+        
+        #draw characters, in latest position 
+        for c in self.CharacterList:
+            c.Plot()
         
         #save
         if SaveFig==True and SaveName != "":
@@ -247,13 +244,31 @@ class SquareGraph:
         if len([x.team for x in self.CharacterList if x.general_status != "deceased"]) in [0,1]:
             return "Combat Ended"
         
+        #big loop to iterate through characters 
         #evaluate if a creature has a target or not
-        for i,_ in enumerate(self.CharacterList):
-            print(i)
-        
+        for i,_ in enumerate([x for x in self.CharacterList if x.general_status != "deceased"]):
+            
+            #if index has been removed, continue
+            if i > len([x for x in self.CharacterList if x.general_status != "deceased"])-1:
+                break
+            
+            print("")
+            print("index",i)
+            print("len",len([x for x in self.CharacterList if x.general_status != "deceased"]))
+            
+            print("icon",self.CharacterList[i].icon)
+            print("location",self.CharacterList[i].x,self.CharacterList[i].y)
+            print("Target",self.CharacterList[i].x_target,self.CharacterList[i].y_target)
+          
+            ###############
+            # find target #
+            ###############
+            
             #indicate if we need to repoint or not
             repoint = False
             
+            #if character does not have a target 
+            #or if there is no enemy in the target square, then repoint
             if ((self.CharacterList[i].x_target == None) or (self.CharacterList[i].y_target == None)):
                 repoint = True
             else:
@@ -266,10 +281,13 @@ class SquareGraph:
                 #find distance to all enemies 
                 eDict = {}
                 
+                #iterate through character list 
                 for e in self.CharacterList:
                     
                     #only look at enemies 
                     if e.team != self.CharacterList[i].team:
+                        
+                        #find shortest path
                         eDict[str(e.x)+"_"+str(e.y)]=nx.shortest_path_length(self.G,
                                                         str(self.CharacterList[i].x)+"_"+str(self.CharacterList[i].y),
                                                         str(e.x)+"_"+str(e.y),
@@ -281,6 +299,10 @@ class SquareGraph:
                 #assign target to location
                 self.CharacterList[i].x_target = int(enemy_location.split("_")[0])
                 self.CharacterList[i].y_target = int(enemy_location.split("_")[1])
+                
+            ###############
+            # movement ####
+            ###############
             
             #move action - have character proceed towards opponent
             #determine current location and target, and path between
@@ -323,4 +345,56 @@ class SquareGraph:
                     #else, stop movememt
                     else:
                         break
-            #attack
+                                 
+            ##########
+            ##attack##
+            ##########  
+            
+            print("Map Status",[(x.icon,x.hit_point_current) for x in self.CharacterList])
+            print("Enemy Line",[a for a,c in enumerate(self.CharacterList) if c.x == self.CharacterList[i].x_target and c.y == self.CharacterList[i].y_target and c.team != self.CharacterList[i].team])
+            
+            #determine enemy index 
+            enemy_index = [a for a,c in enumerate(self.CharacterList) if c.x == self.CharacterList[i].x_target and c.y == self.CharacterList[i].y_target and c.team != self.CharacterList[i].team][0]
+            
+            #determine adjacemetn squares to current poition of character
+            adjacent_list = dict(self.G[str(self.CharacterList[i].x)+"_"+str(self.CharacterList[i].y)]).keys()
+            
+            #if adjacent, melee
+            if str(self.CharacterList[enemy_index].x)+"_"+str(self.CharacterList[enemy_index].y) in adjacent_list:
+                
+                #attempt attack
+                if self.CharacterList[i].Attack("melee") >= self.CharacterList[enemy_index].armor:
+                    
+                    #if succesful apply damage
+                    self.CharacterList[enemy_index].hit_point_current -= self.CharacterList[i].Damage("melee") 
+                    
+                    #if pushed below zero, kill
+                    if self.CharacterList[enemy_index].hit_point_current <= 0:
+                        
+                        #set character to deceased
+                        self.CharacterList[enemy_index].general_status = "deceased"
+                        
+                        #remove character
+                        del self.CharacterList[enemy_index]
+                        
+            #otherwise ranged attack (if they are in range)
+            else:
+                pass
+            
+            
+        ##########################
+        ##proceed to next round ##
+        ##########################
+        #once all characters proceeded through
+            
+        #evaluate if multiple teams still standing (killed this round)
+        if len([x.team for x in self.CharacterList if x.general_status != "deceased"]) in [0,1]:
+            return "Combat Ended"
+            
+        #otherwise continue
+        else:
+            return "Combat Continue"
+                
+            
+            
+            

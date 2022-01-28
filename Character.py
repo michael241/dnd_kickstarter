@@ -2,6 +2,7 @@ import numpy as np
 from Dice import * 
 from SkillSupport import *
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 
 #https://jckantor.github.io/ND-Pyomo-Cookbook/
 import pyomo.environ as pe
@@ -18,6 +19,10 @@ class Character:
                  ,hit_point_current=None
                  ,hit_point_max = None
                  ,hit_dice = None
+                 ,melee_attack =None
+                 ,range_attack = None
+                 ,melee_damage =None
+                 ,range_damage = None
                  ,general_status='alive_and_well' #options, alive_and_well or deceased
                  ,advantage_status='base'
                  ,initative = None
@@ -70,6 +75,10 @@ class Character:
         #battle
         self.team= team
         self.enemy_list = enemy_list
+        self.melee_attack = melee_attack
+        self.range_attack = range_attack
+        self.melee_damage = melee_damage
+        self.range_damage = range_damage
         
         #misc
         self.proficiency_bonus = proficiency_bonus
@@ -80,7 +89,7 @@ class Character:
         """returns basic mod for core ability or skill check"""
 
         #get base value add
-        if check in ['stn','athletics']:
+        if check in ['sth','athletics']:
             mod = self.sth
             
         elif check in ['dex','acrobatics','sleight_of_hand','stealth']:
@@ -148,41 +157,68 @@ class Character:
             raise ValueError("Character Check - advantage inputted that is not in approved list")
             
     def Plot(self):
+        """plot character on map"""
+        
+        #get white background
+        plt.gca().add_patch(Rectangle(xy=(self.x-0.5, self.y-0.5),width=1,height=1,edgecolor='k',linewidth=1,facecolor="white"))   
+        
         #show icon
         plt.annotate(self.icon,
-                     xy=(self.x,self.y),
-                     fontsize=50,
+                     xy=(self.x,self.y+0.15),
+                     fontsize=20,
                      horizontalalignment='center',
-                     verticalalignment='center')
+                     verticalalignment='top')
             
         #show hp
         plt.annotate(self.hit_point_current,
-                     xy=(self.x,self.y+0.3),
-                     fontsize=25,
+                     xy=(self.x+0.30,self.y+0.25),
+                     fontsize=10,
                      horizontalalignment="center",
-                     verticalalignment="center")
-            
+                     verticalalignment="top",
+                     color="darkgreen")
+        
+        #show armor
+        plt.annotate(self.armor,
+                     xy=(self.x+0.30,self.y-0.25),
+                     fontsize=10,
+                     horizontalalignment="center",
+                     verticalalignment="top",
+                     color="gray")  
+        
+        #show team
+        plt.annotate(self.team,
+                     xy=(self.x-0.30,self.y+0.25),
+                     fontsize=10,
+                     horizontalalignment="center",
+                     verticalalignment="top",
+                     color="red")              
             
     def Setup(self):
         """for essential values ensure they are calculated, or otherwise flag error"""
         #set baseline hitpoints
-        if self.hit_point_max == None:
-           self.hit_point_max = np.max([-1,self.hit_dice.r()*self.level + self.CheckMod('con')])
+        pass
+#         if self.hit_point_max == None:
+#            self.hit_point_max = np.max([-1,self.hit_dice.r()*self.level + self.CheckMod('con')])
         
-        #set current hit points (to max)
-        if self.hit_point_current == None:
-            self.hit_point_current = self.hit_point_max 
+#         #set current hit points (to max)
+#         if self.hit_point_current == None:
+#             self.hit_point_current = self.hit_point_max 
            
-        #set baseline proficiency bonus
-        if self.proficiency_bonus == None:
-            self.proficiency_bonus = ProficiencyBonusConvert().mod(self.level)
+#         #set baseline proficiency bonus
+#         if self.proficiency_bonus == None:
+#             self.proficiency_bonus = ProficiencyBonusConvert().mod(self.level)
 
+
+    def Attack(self,option):
+        """surface the attack that is being done"""
+        if option == "melee":
+            return self.CheckMod("sth")+self.proficiency_bonus+D20().r()
+        elif option == "range":
+            return self.CheckMod("dex")+self.proficiency_bonus+D20().r()
             
-    def AttackMelee(self):
-        """melee attack placeholder"""
-         
-        
-        
-        
-        
-        
+    def Damage(self,option):
+        """surface the attack that is being done"""
+        if option == "melee":
+            return self.CheckMod("sth")+self.melee_damage.r()
+        elif option == "range":
+            return self.CheckMod("dex")+self.range_damage.r()

@@ -147,13 +147,6 @@ class Cartographer:
                         else:
                             self.UpdateSquare(x=x_finder,y=y_finder,b=b,l=l)
                             
-                
-                
-                    
-                
-                
-        
-
     def Show(self):
         """in the proper grid format, show the network"""
         
