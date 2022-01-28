@@ -1,6 +1,9 @@
 # Purpose:
 Generate and size potential startup enterprises, specifically within dnd 
 
+* Author:
+    * Michael Turner
+
 * Files
     * Py
         * Cartographer.py - Mapmaking and visualizing package
